@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>라치오날 델타T 계산기</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c5aa0;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 30px;
+        }
+        .section h3 {
+            color: #2c5aa0;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px 12px;
+            text-align: center;
+        }
+        th {
+            background-color: #4CAF50;
+            color: white;
+            font-weight: bold;
+        }
+        .input-table th {
+            background-color: #2196F3;
+        }
+        .formula-table th {
+            background-color: #FF9800;
+        }
+        .result-table th {
+            background-color: #9C27B0;
+        }
+        .input-cell {
+            background-color: #e3f2fd;
+            font-weight: bold;
+        }
+        .formula-cell {
+            background-color: #fff3e0;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .result-cell {
+            background-color: #f3e5f5;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #FFC107, #FF5722);
+            transition: width 0.3s ease;
+        }
+        .download-info {
+            background-color: #e8f5e8;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #4CAF50;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1> 라치오날 델타T 계산기</h1>
+        
+        <div class="download-info">
+            <strong>📋 사용법:</strong><br>
+            파란색 입력값을 클릭하여 수정하면 모든 계산이 자동으로 업데이트됩니다.
+        </div>
+
+        <div class="section">
+            <h3>1️⃣ 입력 파라미터</h3>
+            <table class="input-table">
+                <tr><th style="width: 60%;">파라미터</th><th style="width: 40%;">값</th></tr>
+                <tr><td>목표 중심온도 (°C)</td><td class="input-cell" id="target-temp">0</td></tr>
+                <tr><td>설정 델타온도 (°C)</td><td class="input-cell" id="delta-temp">0</td></tr>
+                <tr><td>X값 (°C)</td><td class="input-cell" id="x-value">4</td></tr>
+                <tr><td>최종 델타온도 (°C)</td><td class="input-cell" id="final-delta">4</td></tr>
+            </table>
+        </div>
+
+        <div class="section">
+            <h3>2️⃣ 자동 계산 결과</h3>
+            <table class="formula-table">
+                <tr><th style="width: 60%;">계산항목</th><th style="width: 40%;">결과</th></tr>
+                <tr>
+                    <td>전환 중심온도 (델타T 감소 시작점)</td>
+                    <td class="result-cell" id="switch-temp">47°C</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="section">
+            <h3>3️⃣ 온도별 상세 계산표</h3>
+            <table class="result-table">
+                <tr>
+                    <th>현재 중심온도(°C)</th>
+                    <th>진행비율(%)</th>
+                    <th>현재 델타온도(°C)</th>
+                    <th>오븐설정온도(°C)</th>
+                    <th>진행도</th>
+                </tr>
+                <tbody id="result-table">
+                    <!-- 계산 결과가 여기에 표시됩니다 -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // 계산 함수들
+        function calculateSwitchTemp(target, delta, x) {
+            return target - (delta / 2) + (x / 2);
+        }
+
+        function calculateProgress(current, switchTemp, target) {
+            if (current < switchTemp) return 0;
+            return ((current - switchTemp) / (target - switchTemp)) * 100;
+        }
+
+        function calculateCurrentDelta(progress, initialDelta, finalDelta) {
+            return initialDelta - ((initialDelta - finalDelta) * (progress / 100));
+        }
+
+        // 값 업데이트 함수
+        function updateCalculations() {
+            const targetTemp = parseInt(document.getElementById('target-temp').textContent);
+            const deltaTemp = parseInt(document.getElementById('delta-temp').textContent);
+            const xValue = parseInt(document.getElementById('x-value').textContent);
+            const finalDelta = parseInt(document.getElementById('final-delta').textContent);
+
+            const switchTemp = calculateSwitchTemp(targetTemp, deltaTemp, xValue);
+
+            document.getElementById('switch-temp').textContent = switchTemp + '°C';
+
+            // 결과표 생성
+            const tbody = document.getElementById('result-table');
+            tbody.innerHTML = '';
+
+            for (let temp = switchTemp; temp <= targetTemp; temp++) {
+                const progress = calculateProgress(temp, switchTemp, targetTemp);
+                const currentDelta = calculateCurrentDelta(progress, deltaTemp, finalDelta);
+                const ovenTemp = temp + currentDelta;
+
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${temp}</td>
+                    <td>${progress.toFixed(1)}%</td>
+                    <td>${currentDelta.toFixed(1)}</td>
+                    <td>${ovenTemp.toFixed(1)}</td>
+                    <td>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${progress}%"></div>
+                        </div>
+                    </td>
+                `;
+            }
+        }
+
+        // 초기 계산 실행
+        updateCalculations();
+
+        // 입력값 클릭시 편집 가능하게 만들기
+        document.querySelectorAll('.input-cell').forEach(cell => {
+            cell.addEventListener('click', function() {
+                const currentValue = this.textContent;
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.value = currentValue;
+                input.style.width = '60px';
+                input.style.textAlign = 'center';
+                
+                this.textContent = '';
+                this.appendChild(input);
+                input.focus();
+                
+                input.addEventListener('blur', function() {
+                    cell.textContent = this.value;
+                    updateCalculations();
+                });
+                
+                input.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        this.blur();
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
